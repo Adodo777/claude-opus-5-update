@@ -5429,8 +5429,14 @@ function buildTargets(){
   const want = dpr * q.px * State.scale;
   const px = q.px < 1.0 ? want
            : Math.max(dpr, Math.min(want, Math.max(dpr, 1.40)));
-  const W = Math.max(320, Math.floor(window.innerWidth*px));
-  const H = Math.max(240, Math.floor(window.innerHeight*px));
+  let W = Math.max(320, Math.floor(window.innerWidth*px));
+  let H = Math.max(240, Math.floor(window.innerHeight*px));
+  const maxPixels = 1920 * 1080 * 1.5;
+  if (W * H > maxPixels) {
+    const scaleDown = Math.sqrt(maxPixels / (W * H));
+    W = Math.floor(W * scaleDown);
+    H = Math.floor(H * scaleDown);
+  }
 
   // the angular size of one rendered pixel — the floor for grass blade width
   const angPerPx = 2*Math.tan(CFG.fov*DEG/2)/H;
@@ -6078,7 +6084,14 @@ function bindInput(){
   
   if (isMobile) {
     $('#joy-container').classList.add('on');
-    setTimeout(() => setQuality(0), 100); // Force low quality on mobile
+    cv.style.touchAction = 'none'; // Prevent pull-to-refresh and zooming
+    setTimeout(() => {
+      setQuality(0); // Force low quality
+      State.scale = 0.65; // Force lower render scale for smooth FPS
+      const qs = $('#qScale'); if (qs) qs.value = 65;
+      const qsv = $('#qScaleV'); if (qsv) qsv.textContent = '65';
+      buildTargets(); // Apply scale immediately
+    }, 100);
 
     // Touch look
     let lastTouchX = 0, lastTouchY = 0;
@@ -6093,7 +6106,7 @@ function bindInput(){
         const tx = e.touches[0].clientX, ty = e.touches[0].clientY;
         const dx = tx - lastTouchX;
         const dy = ty - lastTouchY;
-        walker.look(dx * 1.5, dy * 1.5);
+        walker.look(dx * 4.5, dy * 4.5);
         lastTouchX = tx;
         lastTouchY = ty;
       }
